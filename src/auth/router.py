@@ -67,6 +67,8 @@ async def revoke_token(token_details:dict=Depends(AccessTokenBearer())):
 async def verify_user_account(token: str,session:AsyncSession=Depends(get_session)):
 
     token_data = decode_url_safe_token(token)
+    if not token_data:
+        raise InvalidToken()
     user_email = token_data.get("email")
 
     if user_email:

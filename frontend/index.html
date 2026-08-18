@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- API base URL: Vercel build step replaces __API_BASE_URL__ with the Render backend URL -->
+  <meta name="api-base-url" content="__API_BASE_URL__">
+  <title>ChemPulse | Chemical Plant Equipment Analytics & AI Copilot</title>
+  
+  <!-- Modern Typography Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Design System -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/chat.css">
+
+  <!-- Lucide Icons & Chart.js -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div id="app-root">
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">
+          <i data-lucide="activity"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">ChemPulse</span>
+          <span class="brand-subtitle">Plant Analytics</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Operations</div>
+        <a class="nav-item active" data-view="dashboard" id="nav-dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-item" data-view="equipment" id="nav-equipment">
+          <i data-lucide="cpu"></i>
+          <span>Equipment Telemetry</span>
+        </a>
+
+        <div class="nav-section-label">Data & Manuals</div>
+        <a class="nav-item" data-view="datasets" id="nav-datasets">
+          <i data-lucide="database"></i>
+          <span>Datasets & Ingestion</span>
+        </a>
+        <a class="nav-item" data-view="documents" id="nav-documents">
+          <i data-lucide="file-text"></i>
+          <span>Technical Manuals</span>
+        </a>
+
+        <div class="nav-section-label">Intelligence</div>
+        <a class="nav-item" data-view="chat" id="nav-chat">
+          <i data-lucide="bot"></i>
+          <span>AI Plant Copilot</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status-indicator">
+          <span><span class="status-dot" id="system-status-dot"></span>Backend API</span>
+          <span id="system-status-text">Connected</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      <!-- Top Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="mobile-menu-toggle" id="mobile-menu-btn" title="Toggle Navigation">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="dataset-selector-wrapper">
+            <span class="dataset-selector-label">Active Dataset:</span>
+            <select class="dataset-select" id="active-dataset-select">
+              <option value="">No Dataset Selected</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button class="btn btn-secondary btn-sm" id="btn-quick-sample" title="Download Sample CSV">
+            <i data-lucide="download"></i>
+            <span>Sample CSV</span>
+          </button>
+          
+          <div id="auth-container">
+            <button class="btn btn-primary btn-sm" id="btn-open-auth">
+              <i data-lucide="log-in"></i>
+              <span>Sign In</span>
+            </button>
+            <div class="user-profile-btn" id="user-profile-pill" style="display: none;">
+              <div class="user-avatar" id="user-avatar-initial">U</div>
+              <span class="user-email-text" id="user-email-display">user@plant.com</span>
+              <button class="btn-ghost btn-sm btn-icon" id="btn-logout" title="Sign Out">
+                <i data-lucide="log-out"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Views Container -->
+      <div class="view-content-wrapper">
+        
+        <!-- 1. DASHBOARD VIEW -->
+        <section class="app-view active-view" id="view-dashboard">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1><i data-lucide="layout-dashboard" class="text-cyan"></i> Plant Analytics Dashboard</h1>
+              <p class="view-subtitle">Real-time telemetry, operational parameters, and equipment health metrics.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary btn-sm" id="btn-refresh-dashboard">
+                <i data-lucide="refresh-cw"></i>
+                <span>Refresh Telemetry</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Metric Cards Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Equipment Monitored</span>
+                <div class="metric-icon-box icon-equipment"><i data-lucide="cpu"></i></div>
+              </div>
+              <div class="metric-value-container">
+                <span class="metric-value" id="kpi-equipment-count">0</span>
+                <span class="metric-unit">Units</span>
+              </div>
+              <div class="metric-subtext">Active operational units</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Avg Flowrate</span>
+                <div class="metric-icon-box icon-flowrate"><i data-lucide="waves"></i></div>
+              </div>
+              <div class="metric-value-container">
+                <span class="metric-value" id="kpi-avg-flowrate">0.00</span>
+                <span class="metric-unit">m³/h</span>
+              </div>
+              <div class="metric-subtext">Range: <span id="kpi-flowrate-range">0.0 - 0.0</span></div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Avg Pressure</span>
+                <div class="metric-icon-box icon-pressure"><i data-lucide="gauge"></i></div>
+              </div>
+              <div class="metric-value-container">
+                <span class="metric-value" id="kpi-avg-pressure">0.00</span>
+                <span class="metric-unit">bar</span>
+              </div>
+              <div class="metric-subtext">Range: <span id="kpi-pressure-range">0.0 - 0.0</span></div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Avg Temperature</span>
+                <div class="metric-icon-box icon-temperature"><i data-lucide="thermometer"></i></div>
+              </div>
+              <div class="metric-value-container">
+                <span class="metric-value" id="kpi-avg-temperature">0.00</span>
+                <span class="metric-unit">°C</span>
+              </div>
+              <div class="metric-subtext">Range: <span id="kpi-temp-range">0.0 - 0.0</span></div>
+            </div>
+          </div>
+
+          <!-- Telemetry Charts -->
+          <div class="charts-grid">
+            <div class="card chart-card-col-8">
+              <div class="card-header">
+                <h3 class="card-title"><i data-lucide="bar-chart-2"></i> Operating Parameter Ranges (Min, Avg, Max)</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-parameter-ranges"></canvas>
+              </div>
+            </div>
+
+            <div class="card chart-card-col-4">
+              <div class="card-header">
+                <h3 class="card-title"><i data-lucide="pie-chart"></i> Equipment Type Distribution</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-type-distribution"></canvas>
+              </div>
+            </div>
+
+            <div class="card chart-card-col-6">
+              <div class="card-header">
+                <h3 class="card-title"><i data-lucide="scatter-chart"></i> Pressure vs. Flowrate Correlation</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-correlation"></canvas>
+              </div>
+            </div>
+
+            <div class="card chart-card-col-6">
+              <div class="card-header">
+                <h3 class="card-title"><i data-lucide="alert-triangle"></i> Inactive Equipment & Telemetry Alerts</h3>
+              </div>
+              <div class="alerts-card-list" id="dashboard-alerts-list">
+                <div class="empty-state">
+                  <i data-lucide="check-circle" class="empty-state-icon text-emerald"></i>
+                  <p>All operating equipment telemetry reporting normally.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. EQUIPMENT TELEMETRY EXPLORER VIEW -->
+        <section class="app-view" id="view-equipment">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1><i data-lucide="cpu"></i> Equipment Telemetry Explorer</h1>
+              <p class="view-subtitle">Search, filter, and inspect operational metrics for all plant units.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary btn-sm" id="btn-clear-equipment-filters">
+                <i data-lucide="filter-x"></i>
+                <span>Reset Filters</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Multi-Parameter Filter Toolbar -->
+          <div class="filter-toolbar">
+            <div class="filter-main-row">
+              <div class="search-input-wrapper">
+                <i data-lucide="search"></i>
+                <input type="text" id="filter-search" class="form-input" placeholder="Search equipment by name...">
+              </div>
+              <select id="filter-type" class="form-select" style="max-width: 220px;">
+                <option value="">All Equipment Types</option>
+                <option value="Pump">Pump</option>
+                <option value="Heat Exchanger">Heat Exchanger</option>
+                <option value="Reactor">Reactor</option>
+                <option value="Column">Column</option>
+                <option value="Compressor">Compressor</option>
+                <option value="Storage Tank">Storage Tank</option>
+                <option value="Valve">Valve</option>
+              </select>
+              <select id="filter-sort-by" class="form-select" style="max-width: 180px;">
+                <option value="created_at">Sort: Recent</option>
+                <option value="equipment_name">Sort: Name</option>
+                <option value="flowrate">Sort: Flowrate</option>
+                <option value="pressure">Sort: Pressure</option>
+                <option value="temperature">Sort: Temperature</option>
+              </select>
+              <select id="filter-order" class="form-select" style="max-width: 130px;">
+                <option value="desc">Desc</option>
+                <option value="asc">Asc</option>
+              </select>
+            </div>
+
+            <div class="filter-advanced-row">
+              <div class="form-group">
+                <label class="form-label">Pressure (bar) <span>Min / Max</span></label>
+                <div style="display: flex; gap: 0.5rem;">
+                  <input type="number" id="filter-min-pressure" class="form-input" placeholder="Min" step="0.1">
+                  <input type="number" id="filter-max-pressure" class="form-input" placeholder="Max" step="0.1">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Temperature (°C) <span>Min / Max</span></label>
+                <div style="display: flex; gap: 0.5rem;">
+                  <input type="number" id="filter-min-temp" class="form-input" placeholder="Min" step="0.1">
+                  <input type="number" id="filter-max-temp" class="form-input" placeholder="Max" step="0.1">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Flowrate (m³/h) <span>Min / Max</span></label>
+                <div style="display: flex; gap: 0.5rem;">
+                  <input type="number" id="filter-min-flowrate" class="form-input" placeholder="Min" step="0.1">
+                  <input type="number" id="filter-max-flowrate" class="form-input" placeholder="Max" step="0.1">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Equipment Data Table -->
+          <div class="table-responsive">
+            <table class="data-table" id="equipment-table">
+              <thead>
+                <tr>
+                  <th>Equipment Name</th>
+                  <th>Type</th>
+                  <th>Flowrate (m³/h)</th>
+                  <th>Pressure (bar)</th>
+                  <th>Temperature (°C)</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="equipment-table-body">
+                <tr>
+                  <td colspan="7" class="empty-state">
+                    <i data-lucide="inbox" class="empty-state-icon"></i>
+                    <p>No equipment records loaded. Please select or upload a dataset.</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-container">
+            <div class="pagination-meta" id="equipment-pagination-meta">Showing 0 of 0 equipment items</div>
+            <div class="pagination-controls">
+              <button class="btn btn-secondary btn-sm" id="btn-prev-page" disabled>
+                <i data-lucide="chevron-left"></i> Previous
+              </button>
+              <span id="current-page-display" class="mono-num" style="padding: 0 0.5rem;">1 / 1</span>
+              <button class="btn btn-secondary btn-sm" id="btn-next-page" disabled>
+                Next <i data-lucide="chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. DATASETS & INGESTION HUB VIEW -->
+        <section class="app-view" id="view-datasets">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1><i data-lucide="database"></i> Datasets & Ingestion Hub</h1>
+              <p class="view-subtitle">Upload chemical plant CSV datasets, compute analytics summaries, and manage runs.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary btn-sm" id="btn-download-sample-csv">
+                <i data-lucide="file-spreadsheet"></i>
+                <span>Download Sample Template</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dropzone File Upload -->
+          <div class="card" style="margin-bottom: 2rem;">
+            <div class="dropzone-container" id="csv-dropzone">
+              <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+              <div class="dropzone-icon">
+                <i data-lucide="upload-cloud"></i>
+              </div>
+              <h3 class="dropzone-title">Upload Equipment Telemetry Dataset</h3>
+              <p class="dropzone-desc">Drag and drop your CSV file here, or click to browse (Max 5MB)</p>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                Required columns: <code>Equipment Name</code>, <code>Type</code>, <code>Flowrate</code>, <code>Pressure</code>, <code>Temperature</code>
+              </p>
+            </div>
+            <div id="upload-progress-container" style="display: none; margin-top: 1rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem;">
+                <span id="upload-filename">dataset.csv</span>
+                <span id="upload-percent">0%</span>
+              </div>
+              <div style="width: 100%; height: 6px; background-color: var(--bg-tertiary); border-radius: var(--border-radius-full); overflow: hidden;">
+                <div id="upload-progress-bar" style="width: 0%; height: 100%; background-color: var(--accent-cyan); transition: width 0.2s;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Datasets History Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i data-lucide="archive"></i> Uploaded Datasets</h3>
+              <button class="btn btn-ghost btn-sm" id="btn-refresh-datasets">
+                <i data-lucide="refresh-cw"></i> Refresh
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Filename</th>
+                    <th>Equipment Count</th>
+                    <th>Avg Flowrate</th>
+                    <th>Avg Pressure</th>
+                    <th>Avg Temp</th>
+                    <th>Status</th>
+                    <th>Uploaded At</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="datasets-table-body">
+                  <tr>
+                    <td colspan="8" class="empty-state">
+                      <p>No datasets uploaded yet. Upload a CSV above to get started.</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. TECHNICAL DOCUMENTS & MANUALS VIEW -->
+        <section class="app-view" id="view-documents">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1><i data-lucide="file-text"></i> Technical Manuals & SOPs</h1>
+              <p class="view-subtitle">Upload engineering manuals, P&ID guides, and SOPs for AI-powered RAG knowledge retrieval.</p>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-header">
+              <h3 class="card-title"><i data-lucide="file-plus"></i> Attach Manual to Active Dataset</h3>
+            </div>
+            <form id="doc-upload-form" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+              <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+                <label class="form-label">Select Document (PDF, TXT, DOCX)</label>
+                <input type="file" id="doc-file-input" class="form-input" required>
+              </div>
+              <button type="submit" class="btn btn-primary" id="btn-upload-doc">
+                <i data-lucide="upload"></i>
+                <span>Upload & Index</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i data-lucide="files"></i> Indexed Documents for Current Dataset</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Document Name</th>
+                    <th>Uploaded Date</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="documents-table-body">
+                  <tr>
+                    <td colspan="3" class="empty-state">
+                      <p>No documents uploaded for this dataset.</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. AI PLANT COPILOT VIEW -->
+        <section class="app-view" id="view-chat">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1><i data-lucide="bot"></i> AI Plant Copilot</h1>
+              <p class="view-subtitle">Intelligent conversational assistant for equipment SQL queries and engineering manuals RAG.</p>
+            </div>
+          </div>
+
+          <div class="chat-view-container">
+            <!-- Sessions Sidebar -->
+            <div class="chat-sessions-sidebar">
+              <div class="chat-sessions-header">
+                <h3>Chat Sessions</h3>
+                <button class="btn btn-primary btn-sm btn-icon" id="btn-new-chat" title="New Chat Session">
+                  <i data-lucide="plus"></i>
+                </button>
+              </div>
+              <div class="chat-sessions-list" id="chat-sessions-list">
+                <!-- Chat Sessions Rendered Here -->
+              </div>
+            </div>
+
+            <!-- Chat Main Pane -->
+            <div class="chat-main-card">
+              <div class="chat-header-bar">
+                <div class="chat-mode-toggle">
+                  <button class="mode-toggle-btn active" data-mode="sql" id="mode-sql-btn">
+                    <i data-lucide="database"></i>
+                    <span>Database SQL Query</span>
+                  </button>
+                  <button class="mode-toggle-btn mode-rag" data-mode="rag" id="mode-rag-btn">
+                    <i data-lucide="book-open"></i>
+                    <span>Manuals RAG Search</span>
+                  </button>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);" id="chat-active-mode-desc">
+                  Mode: Querying live equipment metrics with Text-to-SQL
+                </div>
+              </div>
+
+              <!-- Message Feed -->
+              <div class="chat-messages-feed" id="chat-messages-feed">
+                <div class="chat-message assistant-message">
+                  <div class="message-avatar"><i data-lucide="bot"></i></div>
+                  <div class="message-bubble">
+                    Hello! I'm your <strong>ChemPulse AI Copilot</strong>. I can analyze your equipment parameters, generate SQL queries to find operational anomalies, or search your attached engineering manuals for SOPs.<br><br>
+                    <em>Try asking: "Which pumps are operating with temperature above 100°C?" or "What is the average pressure across all reactors?"</em>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Chat Input Bar -->
+              <div class="chat-input-container">
+                <form class="chat-input-form" id="chat-form">
+                  <input type="text" id="chat-input" class="chat-input-field" placeholder="Ask a question about your plant equipment or manuals..." autocomplete="off" required>
+                  <button type="submit" class="chat-send-btn" id="chat-send-btn">
+                    <i data-lucide="send"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <!-- 1. Auth Modal -->
+  <div class="modal-backdrop" id="auth-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="auth-modal-title">Sign In to ChemPulse</h3>
+        <button class="btn-ghost btn-sm btn-icon" id="btn-close-auth-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- Auth Tabs -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <button class="btn btn-ghost btn-sm active" id="tab-login-btn">Sign In</button>
+          <button class="btn btn-ghost btn-sm" id="tab-signup-btn">Create Account</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="login-email" class="form-input" placeholder="engineer@plant.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" id="btn-submit-login">Sign In</button>
+        </form>
+
+        <!-- Signup Form -->
+        <form id="signup-form" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Username <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Max 8 chars)</span></label>
+            <input type="text" id="signup-username" class="form-input" placeholder="user123" maxlength="8" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">First Name</label>
+              <input type="text" id="signup-firstname" class="form-input" placeholder="John" maxlength="25" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name</label>
+              <input type="text" id="signup-lastname" class="form-input" placeholder="Doe" maxlength="25" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="signup-email" class="form-input" placeholder="engineer@plant.com" maxlength="40" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Min 6 chars)</span></label>
+            <input type="password" id="signup-password" class="form-input" placeholder="••••••••" minlength="6" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" id="btn-submit-signup">Create Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Equipment Edit / Detail Modal -->
+  <div class="modal-backdrop" id="equipment-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Equipment Telemetry</h3>
+        <button class="btn-ghost btn-sm btn-icon" id="btn-close-equipment-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="equipment-edit-form">
+          <input type="hidden" id="edit-equipment-id">
+          <div class="form-group">
+            <label class="form-label">Equipment Name</label>
+            <input type="text" id="edit-equipment-name" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Equipment Type</label>
+            <input type="text" id="edit-equipment-type" class="form-input" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Flowrate (m³/h)</label>
+              <input type="number" id="edit-equipment-flowrate" class="form-input" step="0.1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pressure (bar)</label>
+              <input type="number" id="edit-equipment-pressure" class="form-input" step="0.1" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Temperature (°C)</label>
+            <input type="number" id="edit-equipment-temp" class="form-input" step="0.1" required>
+          </div>
+          <div class="modal-footer" style="margin: 1.5rem -1.5rem -1.5rem -1.5rem;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-equipment-edit">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-equipment">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- JavaScript Modules -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+# render.yaml — Render.com Infrastructure as Code
+# Defines the FastAPI web service + Celery background worker
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # FastAPI Web Service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: chempulse-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter          # upgrade to standard/pro for production
+    region: oregon          # or: frankfurt, singapore, ohio
+    branch: main
+    autoDeploy: true
+
+    # Health check endpoint (Render checks this before marking healthy)
+    healthCheckPath: /docs
+
+    envVars:
+      # -----------------------------------------------------------------------
+      # Set these in your Render dashboard under Environment → Secret Files
+      # OR as individual Environment Variables
+      # -----------------------------------------------------------------------
+      - key: DATABASE_URL
+        sync: false          # mark as secret — fill in Render dashboard
+      - key: REDIS_URL
+        fromService:
+          name: chempulse-redis
+          type: redis
+          property: connectionString
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true   # Render auto-generates a secure random value
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_FROM_NAME
+        value: ChemPulse
+      - key: DOMAIN
+        fromService:
+          name: chempulse-api
+          type: web
+          property: host        # Render injects the public URL automatically
+      - key: CHROMA_PERSIST_DIR
+        value: /app/storage/chroma
+
+    disk:
+      name: chroma-storage
+      mountPath: /app/storage
+      sizeGB: 5               # adjust as needed
+
+    # Override the Dockerfile CMD to run migrations first
+    startCommand: >
+      sh -c "alembic upgrade head && uvicorn src:app --host 0.0.0.0 --port $PORT"
+
+  # ---------------------------------------------------------------------------
+  # Celery Background Worker (same Docker image, different command)
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: chempulse-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    branch: main
+    autoDeploy: true
+
+    startCommand: celery -A src.celery_app.c_app worker --loglevel=info --concurrency=2
+
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: chempulse-redis
+          type: redis
+          property: connectionString
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_FROM_NAME
+        value: ChemPulse
+      - key: DOMAIN
+        sync: false
+      - key: CHROMA_PERSIST_DIR
+        value: /app/storage/chroma
+
+    disk:
+      name: worker-chroma-storage
+      mountPath: /app/storage
+      sizeGB: 5
+
+  # ---------------------------------------------------------------------------
+  # Redis (managed by Render)
+  # ---------------------------------------------------------------------------
+  - type: redis
+    name: chempulse-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: noeviction

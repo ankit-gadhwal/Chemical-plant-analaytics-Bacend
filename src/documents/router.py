@@ -17,7 +17,7 @@ doc_router = APIRouter()
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_document(
-    dataset_uid: str,
+    dataset_uid: uuid.UUID,
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),):

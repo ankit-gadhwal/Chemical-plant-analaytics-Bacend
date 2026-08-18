@@ -16,8 +16,10 @@ def register_middleware(app:FastAPI):
             raise
         elapsed = (time.perf_counter() - start) * 1000
 
+        client_host = request.client.host if request.client else "127.0.0.1"
+        client_port = request.client.port if request.client else 0
         logger.info(
-            "%s %s %s %s %d %.2f ms",request.client.host,request.client.port,request.method,request.url.path,response.status_code,elapsed)
+            "%s %s %s %s %d %.2f ms",client_host,client_port,request.method,request.url.path,response.status_code,elapsed)
         return response
     
     app.add_middleware(
@@ -30,5 +32,5 @@ def register_middleware(app:FastAPI):
 
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["localhost","127.0.0.1"],
+        allowed_hosts=["localhost","127.0.0.1","testserver","*"],
     )

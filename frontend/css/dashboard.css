@@ -1,0 +1,188 @@
+/* ==========================================================================
+   Plant Analytics Dashboard Styles
+   Chemical Plant Equipment Analytics
+   ========================================================================== */
+
+/* KPI Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.metric-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-medium);
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-flowrate {
+  background-color: var(--accent-cyan-dim);
+  color: var(--accent-cyan);
+}
+
+.icon-pressure {
+  background-color: var(--accent-amber-dim);
+  color: var(--accent-amber);
+}
+
+.icon-temperature {
+  background-color: var(--accent-rose-dim);
+  color: var(--accent-rose);
+}
+
+.icon-equipment {
+  background-color: var(--accent-emerald-dim);
+  color: var(--accent-emerald);
+}
+
+.metric-value-container {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.metric-unit {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.metric-subtext {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.metric-subtext span {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+/* Charts Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.chart-card-col-8 {
+  grid-column: span 8;
+}
+
+.chart-card-col-4 {
+  grid-column: span 4;
+}
+
+.chart-card-col-6 {
+  grid-column: span 6;
+}
+
+.chart-card-col-12 {
+  grid-column: span 12;
+}
+
+@media (max-width: 1200px) {
+  .chart-card-col-8, .chart-card-col-4 {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 900px) {
+  .chart-card-col-6 {
+    grid-column: span 12;
+  }
+}
+
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+/* Inactive Equipment Alerts & Anomaly Feed */
+.alerts-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  background-color: var(--bg-tertiary);
+  border-left: 3px solid var(--accent-rose);
+  border-radius: var(--border-radius-sm);
+  gap: 1rem;
+}
+
+.alert-item.warning {
+  border-left-color: var(--accent-amber);
+}
+
+.alert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.alert-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.alert-desc {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+}

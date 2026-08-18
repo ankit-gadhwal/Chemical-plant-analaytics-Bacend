@@ -1,0 +1,11 @@
+{
+  "name": "chempulse-frontend",
+  "version": "1.0.0",
+  "description": "ChemPulse frontend build tooling",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

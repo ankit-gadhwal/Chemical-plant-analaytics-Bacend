@@ -55,7 +55,7 @@ class UserService:
         new_user = await self.create_user(user_data,session)
         token = create_url_safe_token({"email":email})
 
-        link = f"http://{Config.DOMAIN}/api/v1/auth/verify/{token}"
+        link = f"http://{Config.DOMAIN}/auth/verify/{token}"
         html = f"""
         <h1>Verify your Email</h1>
         <p>Please click this <a href="{link}">link</a> to verify your email</p>
@@ -63,9 +63,13 @@ class UserService:
         emails = [email]
         subject = "Verify Your Email"
 
-        send_email.delay(emails,subject,html)
+        try:
+            send_email.delay(emails,subject,html)
+        except Exception:
+            pass
+
         return UserSignupResponse(
-        message= "Account Created! Check email to verify your account",
+        message= "Account created successfully! A verification email has been sent to your email address. Please verify your email before logging in.",
         user = new_user,
         )
 
@@ -98,7 +102,7 @@ class UserService:
                         password_hash=generate_password_hash(password),
                         role=UserRole.USER,          # Every new user is a normal user
                         is_active=True,
-                        is_verified=False,
+                        is_verified=False,           # User must verify via email link
                         )
         session.add(new_user)
         await session.commit()

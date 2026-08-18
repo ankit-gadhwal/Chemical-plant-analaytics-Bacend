@@ -28,21 +28,62 @@ from groq import (
     AuthenticationError,
 )
 
+GROQ_FALLBACK_MODELS = [
+    "llama-3.3-70b-specdec",
+    "deepseek-r1-distill-llama-70b",
+    "llama-3.2-11b-vision-preview",
+    "llama-3.2-3b-preview",
+    "llama-3.2-1b-preview",
+    "qwen-qwq-32b"
+]
+
+GEMINI_FALLBACK_MODELS = [
+    "gemini-3.6-flash",
+    "gemini-3.6-pro",
+    "gemini-2.5-flash"
+]
+
 class ChatService:
 
     def __init__(self):
-        self.llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        api_key=Config.GROQ_API_KEY,)
         self.repository = ChatRepository()
         self.sql_executor = SQLExecutor()
         self.dataset_service = DatasetService()
 
-#     async def validate_dataset(self,dataset_uid:uuid.UUID,session:AsyncSession)-> Dataset:
-#          dataset = await self.dataset_service.get_dataset(dataset_uid,session)
-#          if dataset is None:
-#               raise DatasetNotFound(f"Dataset '{dataset_uid}' does not exist.")
-#          return dataset
+    async def _invoke_llm(self, prompt: str):
+        last_error = None
+
+        # 1. Try Google Gemini with active models
+        if Config.GOOGLE_API_KEY:
+            for gemini_model in GEMINI_FALLBACK_MODELS:
+                try:
+                    gemini_llm = ChatGoogleGenerativeAI(
+                        model=gemini_model,
+                        google_api_key=Config.GOOGLE_API_KEY,
+                    )
+                    response = await gemini_llm.ainvoke(prompt)
+                    return response
+                except Exception as exc:
+                    print(f"[ChatService] Gemini model '{gemini_model}' failed: {exc}")
+                    last_error = exc
+
+        # 2. Try Groq with active models
+        if Config.GROQ_API_KEY:
+            for model_name in GROQ_FALLBACK_MODELS:
+                try:
+                    llm = ChatGroq(
+                        model=model_name,
+                        api_key=Config.GROQ_API_KEY,
+                    )
+                    response = await llm.ainvoke(prompt)
+                    return response
+                except Exception as exc:
+                    print(f"[ChatService] Groq model '{model_name}' failed: {exc}")
+                    last_error = exc
+                    continue
+
+        error_msg = str(last_error) if last_error else "No working LLM found. Please verify your GROQ_API_KEY or GOOGLE_API_KEY."
+        raise AIServiceUnavailable(f"AI Service error: {error_msg}")
     
     async def ask_question(self,request:ChatRequest,current_user:User,session:AsyncSession) -> ChatResponse:
 
@@ -93,28 +134,7 @@ class ChatService:
             dataset_uid=dataset_uid
         )
 
-        try:
-             response = await self.llm.ainvoke(prompt)
-
-        except AuthenticationError as exc:
-             print(exc)
-             raise AIServiceUnavailable("Invalid groq API key") from exc
-
-        except RateLimitError as exc:
-            print(exc)
-            raise AIServiceUnavailable("Groq rate limit exceeded.") from exc
-
-        except APIConnectionError as exc:
-            print(exc)
-            raise AIServiceUnavailable("Could not connect to Groq.") from exc
-
-        except APIError as exc:
-            print(exc)
-            raise AIServiceUnavailable() from exc
-        except Exception as exc:
-             print(type(exc))
-             print(exc)
-             raise SQLGenerationFailed() from exc
+        response = await self._invoke_llm(prompt)
         
         content = response.content
         sql = clean_sql(content)
@@ -139,19 +159,14 @@ class ChatService:
         timer = Timer()
 
         if not rows:
-            return "No matching records were found."
+            return "No matching records were found in the dataset."
         row_json = json.dumps(rows,indent=2,default=str)
         prompt = ANSWER_GENERATION_PROMPT.format(
             question=question,rows=row_json,
         )
-        try:
-             response = await self.llm.ainvoke(prompt)
+        response = await self._invoke_llm(prompt)
 
-             ChatLogger.answer_generated(context.request_id,timer.elapsed())
-        except GoogleAPIError as exc:
-             raise AIServiceUnavailable() from exc
-        except Exception as exc:
-             raise AIResponseGenerationFailed() from exc
+        ChatLogger.answer_generated(context.request_id,timer.elapsed())
         content = response.content
         return clean_text(content)
 

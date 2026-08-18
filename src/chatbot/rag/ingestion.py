@@ -49,13 +49,15 @@ class IngestionService:
         metadatas = []
 
         for index,chunk in enumerate(chunks):
+            page_raw = chunk.metadata.get("page")
+            page_num = int(page_raw) if page_raw is not None and str(page_raw).isdigit() else 1
             metadata = DocumentMetadata(
                 owner_uid= str(document.owner_uid),
                 dataset_uid= str(document.dataset_uid),
                 document_uid= str(document.uid),
                 document_name=document_name,
                 document_source=DocumentSource.USER,
-                page= int(chunk.metadata.get("page")),
+                page= page_num,
                 chunk_index=index
             )
 

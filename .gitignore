@@ -1,36 +1,64 @@
-# Virtual Environment
-venv/
-.venv/
-
-# Environment variables
-.env
-
-# Python cache
+# =========================
+# Python
+# =========================
 __pycache__/
 *.py[cod]
 *.pyo
 
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Testing / Coverage
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# Application generated data
+# =========================
+storage/
+
+# =========================
+# Frontend
+# =========================
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# =========================
 # IDE
+# =========================
 .vscode/
 .idea/
 
-# Logs
-*.log
-
-# OS files
+# =========================
+# OS
+# =========================
 .DS_Store
 Thumbs.db
 
-# Uploads (if you don't want to commit user-uploaded files)
-storage/
-
-# ChromaDB (if generated locally)
-storage/chroma/
-
-# Pytest
-.pytest_cache/
-
-# Coverage
-.coverage
-htmlcov/
-src/config.py/
+# =========================
+# Build / temporary files
+# =========================
+*.tmp
+*.temp

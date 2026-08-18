@@ -19,29 +19,21 @@ class TokenBearer(HTTPBearer):
         # print("Authorization header:", request.headers.get("Authorization"))
         # print(dict(request.headers))
         credentials: HTTPAuthorizationCredentials = await super().__call__(request)
-        # print("Credentials:", credentials)
         token = credentials.credentials
-        # print("Token:", token)
         payload = decode_token(token)
 
-        if await token_in_blocklist(payload['jti']):
+        if payload is None:
             raise InvalidToken()
 
-        if not self.token_valid(token):
+        if await token_in_blocklist(payload.get('jti', '')):
             raise InvalidToken()
 
         self.verify_token_data(payload)
 
-        # print("Payload:", payload)
-        if payload is None:
-            raise InvalidToken()
-
         return payload
 
-    def token_valid(self,token:str) ->bool:
-
+    def token_valid(self, token: str) -> bool:
         token_data = decode_token(token)
-
         return token_data is not None 
     
     def verify_token_data(self,token_data):
