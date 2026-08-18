@@ -3,7 +3,7 @@ from src.config import Config
 from pathlib import Path
 from typing import List
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # create the config for sending emails
 mail_config = ConnectionConfig(
