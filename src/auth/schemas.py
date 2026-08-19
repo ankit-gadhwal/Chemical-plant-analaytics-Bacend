@@ -32,6 +32,7 @@ class UserModel(BaseModel):
 class UserSignupResponse(BaseModel):
     message: str
     user: UserModel
+    verification_link: str | None = None
     
 class UserLoginModel(BaseModel):
     email: str = Field(max_length=40)

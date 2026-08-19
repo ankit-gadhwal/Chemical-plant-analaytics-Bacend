@@ -88,6 +88,7 @@ class UserService:
         return UserSignupResponse(
             message="Account created successfully! A verification email has been sent to your email address. Please verify your email before logging in.",
             user=new_user,
+            verification_link=link,
         )
 
     
