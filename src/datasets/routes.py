@@ -1,27 +1,47 @@
-from fastapi import APIRouter,status,Depends,Query
+from fastapi import APIRouter, status, Depends, Query, BackgroundTasks, UploadFile, File
 from sqlmodel.ext.asyncio.session import AsyncSession
-from typing import List,Optional
+from typing import List, Optional
 from fastapi.exceptions import HTTPException
-from .schemas import (PaginationEquipmentResponse,DatasetUploadResponse,DatasetUpdate,
-                      DatasetDetailResponse,DatasetStatistics,ParameterStatistics)
+from .schemas import (
+    PaginationEquipmentResponse,
+    DatasetUploadResponse,
+    DatasetUpdate,
+    DatasetDetailResponse,
+    DatasetStatistics,
+    ParameterStatistics,
+)
 from src.db.main import get_session
 from .service import DatasetService
-from fastapi import UploadFile,File
 import uuid
 from src.error import DatasetNotFound
 from src.auth.authorization import require_dataset_owner
-from src.db.models import Dataset,User
-from src.auth.authorization import (get_current_user,require_dataset_owner,require_admin,require_verified_user,require_dataset_delete_permission)
-
-
+from src.db.models import Dataset, User
+from src.auth.authorization import (
+    get_current_user,
+    require_dataset_owner,
+    require_admin,
+    require_verified_user,
+    require_dataset_delete_permission,
+)
 
 dataset_service = DatasetService()
 
 dataset_router = APIRouter()
 
-@dataset_router.post("/upload",response_model = DatasetUploadResponse)
-async def upload_dataset(file: UploadFile = File(...),current_user:User = Depends(require_verified_user),session: AsyncSession = Depends(get_session)):
-    return await dataset_service.upload_dataset(file,current_user,session)
+
+@dataset_router.post("/upload", response_model=DatasetUploadResponse)
+async def upload_dataset(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_verified_user),
+    session: AsyncSession = Depends(get_session),
+):
+    return await dataset_service.upload_dataset(
+        file=file,
+        current_user=current_user,
+        session=session,
+        background_tasks=background_tasks,
+    )
 
 @dataset_router.get("/",response_model= PaginationEquipmentResponse)
 async def get_all_datasets(current_user: User = Depends(get_current_user),session:AsyncSession = Depends(get_session),page:int = Query(default=1,ge=1)

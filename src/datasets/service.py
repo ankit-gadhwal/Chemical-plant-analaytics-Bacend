@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import shutil
 from src.db.models import Dataset, Equipment,Datasetstatus,User
 from pathlib import Path
-from fastapi import UploadFile,status
+from fastapi import UploadFile, status, BackgroundTasks
 from fastapi.exceptions import HTTPException
 import pandas as pd
 from datetime import datetime
@@ -247,26 +247,58 @@ class DatasetService:
             except Exception:
                 pass
             raise
-        
-    async def upload_dataset(self,file: UploadFile,current_user: User,session: AsyncSession)->DatasetUploadResponse:
+    async def process_dataset_in_background(self, dataset_uid: uuid.UUID) -> None:
+        logger.info(f"Background dataset processing task starting for: {dataset_uid}")
+        from src.db.main import AsyncSessionLocal
+        async with AsyncSessionLocal() as session:
+            try:
+                await self.process_dataset(dataset_uid=dataset_uid, session=session)
+                logger.info(f"Background dataset processing finished for: {dataset_uid}")
+            except Exception as e:
+                logger.error(f"Background dataset processing error for {dataset_uid}: {e}")
+
+    async def upload_dataset(
+        self,
+        file: UploadFile,
+        current_user: User,
+        session: AsyncSession,
+        background_tasks: BackgroundTasks | None = None,
+    ) -> DatasetUploadResponse:
         logger.info(f"Dataset upload started: {file.filename}")
         self.validate_uploaded_file(file)
         logger.info("File validation completed")
         file_info = await self.save_uploaded_file(file)
 
-        duplicate = await self.check_duplicate_dataset(owner_uid=current_user.uid,filename=file.filename,session=session,)
+        duplicate = await self.check_duplicate_dataset(
+            owner_uid=current_user.uid,
+            filename=file.filename,
+            session=session,
+        )
         if duplicate:
             raise DuplicateDatasetException(file.filename)
-        
-        dataset = await self.create_dataset(file_info=file_info,owner_uid=current_user.uid,session=session)
-        from src.celery_tasks import process_dataset
-        process_dataset.delay(str(dataset.uid))
-        
+
+        dataset = await self.create_dataset(
+            file_info=file_info,
+            owner_uid=current_user.uid,
+            session=session,
+        )
+
+        if background_tasks:
+            background_tasks.add_task(self.process_dataset_in_background, dataset.uid)
+        else:
+            try:
+                from src.celery_tasks import process_dataset
+                process_dataset.delay(str(dataset.uid))
+            except Exception:
+                import asyncio
+                asyncio.create_task(self.process_dataset_in_background(dataset.uid))
+
         logger.info("Background processing task created")
-        return DatasetUploadResponse(uid=dataset.uid,
-                 original_filename=dataset.original_filename,
-                message="Dataset uploaded successfully. Processing started."
-                )
+        return DatasetUploadResponse(
+            uid=dataset.uid,
+            original_filename=dataset.original_filename,
+            message="Dataset uploaded successfully. Processing started.",
+        )
     
     async def save_uploaded_file(self,file: UploadFile)->UploadedFileInfo:
         # storage/uploads if it doesn't exist
