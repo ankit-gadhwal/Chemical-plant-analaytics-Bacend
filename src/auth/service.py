@@ -19,6 +19,18 @@ from src.mail import mail, create_message
 
 REFRESH_TOKEN_EXPIRY = 2
 
+async def send_verification_email(email: str, link: str):
+    try:
+        html = f"""
+        <h1>Verify your Email</h1>
+        <p>Please click this <a href="{link}">link</a> to verify your email</p>
+        """
+        message = create_message(recipients=[email], subject="Verify Your Email", body=html)
+        await mail.send_message(message)
+        print(f"[EmailService] Verification email sent successfully to {email}")
+    except Exception as e:
+        print(f"[EmailService] ERROR sending email to {email}: {e}")
+
 class UserService:
     async def login_users(self,
     login_data: UserLoginModel,session:AsyncSession) -> dict:
@@ -66,26 +78,12 @@ class UserService:
             domain = f"https://{domain}"
 
         link = f"{domain}/auth/verify/{token}"
-        html = f"""
-        <h1>Verify your Email</h1>
-        <p>Please click this <a href="{link}">link</a> to verify your email</p>
-        """
-        emails = [email]
-        subject = "Verify Your Email"
 
-        try:
-            if background_tasks:
-                message = create_message(recipients=emails, subject=subject, body=html)
-                background_tasks.add_task(mail.send_message, message)
-            else:
-                send_email.delay(emails, subject, html)
-        except Exception:
-            try:
-                import asyncio
-                message = create_message(recipients=emails, subject=subject, body=html)
-                asyncio.create_task(mail.send_message(message))
-            except Exception:
-                pass
+        if background_tasks:
+            background_tasks.add_task(send_verification_email, email, link)
+        else:
+            import asyncio
+            asyncio.create_task(send_verification_email(email, link))
 
         return UserSignupResponse(
             message="Account created successfully! A verification email has been sent to your email address. Please verify your email before logging in.",
