@@ -31,9 +31,9 @@ app.include_router(auth_router,prefix= "/auth",tags= ["Auth"])
 app.include_router(doc_router,prefix= "/documents",tags= ["Documents"])
 
 # Mount Frontend static files
-import os
-from fastapi.staticfiles import StaticFiles
+# import os
+# from fastapi.staticfiles import StaticFiles
 
-# frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)), "frontend")
+# frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
 # if os.path.exists(frontend_dir):
 #     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

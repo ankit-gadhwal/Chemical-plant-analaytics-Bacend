@@ -1,3 +1,4 @@
+import os
 from typing import List
 import chromadb
 from chromadb.config import Settings
@@ -8,7 +9,9 @@ class VectorStore:
 
     COLLECTION_NAME = "chemical_equipment"
 
-    def __init__(self,presist_directory = "storage/chroma"):
+    def __init__(self, presist_directory: str | None = None):
+        if presist_directory is None:
+            presist_directory = os.getenv("CHROMA_PERSIST_DIR", "storage/chroma")
         self.client = chromadb.PersistentClient(
             path=presist_directory,
             settings=Settings(anonymized_telemetry=False)
