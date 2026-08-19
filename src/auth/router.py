@@ -30,7 +30,7 @@ from .utils import (
     generate_password_hash,
 )
 from src.celery_tasks import send_email
-from src.mail import mail, create_message
+from src.mail import send_email_async
 from src.config import Config
 
 auth_router = APIRouter()
@@ -128,11 +128,7 @@ async def password_Reset_request(
     <p>Please click this <a href="{link}">link</a> to Reset Your Password</p>"""
     subject = "Reset Your Password"
 
-    try:
-        message = create_message(recipients=[email], subject=subject, body=html)
-        background_tasks.add_task(mail.send_message, message)
-    except Exception:
-        send_email.delay([email], subject, html)
+    background_tasks.add_task(send_email_async, [email], subject, html)
 
     return JSONResponse(
         content={

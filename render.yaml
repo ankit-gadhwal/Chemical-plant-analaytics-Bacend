@@ -40,6 +40,8 @@ services:
         generateValue: true   # Render auto-generates a secure random value
       - key: JWT_ALGORITHM
         value: HS256
+      - key: RESEND_API_KEY
+        sync: false
       - key: MAIL_USERNAME
         sync: false
       - key: MAIL_PASSWORD
@@ -100,6 +102,8 @@ services:
         sync: false
       - key: JWT_ALGORITHM
         value: HS256
+      - key: RESEND_API_KEY
+        sync: false
       - key: MAIL_USERNAME
         sync: false
       - key: MAIL_PASSWORD

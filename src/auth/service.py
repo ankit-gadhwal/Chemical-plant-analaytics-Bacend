@@ -15,21 +15,16 @@ from .schemas import UserCreateModel,UserModel,UserLoginModel,UserSignupResponse
 from fastapi import APIRouter, Depends, status, BackgroundTasks
 from src.db.main import get_session
 from src.config import Config
-from src.mail import mail, create_message
+from src.mail import send_email_async
 
 REFRESH_TOKEN_EXPIRY = 2
 
 async def send_verification_email(email: str, link: str):
-    try:
-        html = f"""
-        <h1>Verify your Email</h1>
-        <p>Please click this <a href="{link}">link</a> to verify your email</p>
-        """
-        message = create_message(recipients=[email], subject="Verify Your Email", body=html)
-        await mail.send_message(message)
-        print(f"[EmailService] Verification email sent successfully to {email}")
-    except Exception as e:
-        print(f"[EmailService] ERROR sending email to {email}: {e}")
+    html = f"""
+    <h1>Verify your Email</h1>
+    <p>Please click this <a href="{link}">link</a> to verify your email</p>
+    """
+    await send_email_async(recipients=[email], subject="Verify Your Email", body=html)
 
 class UserService:
     async def login_users(self,
