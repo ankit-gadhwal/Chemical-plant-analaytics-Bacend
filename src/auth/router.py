@@ -1,22 +1,36 @@
-from fastapi import APIRouter,Depends,status
-from .schemas import (UserCreateModel,UserModel,UserLoginModel,
-                      PasswordResetConfirmModel,PasswordResetRequestModel,EmailModel,UserSignupResponse)
+from fastapi import APIRouter, Depends, status, BackgroundTasks
+from .schemas import (
+    UserCreateModel,
+    UserModel,
+    UserLoginModel,
+    PasswordResetConfirmModel,
+    PasswordResetRequestModel,
+    EmailModel,
+    UserSignupResponse,
+)
 from .service import UserService
 from src.db.main import get_session
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi.exceptions import HTTPException
 from src.error import UserAlreadyExists
-from fastapi.responses import JSONResponse,Response
-from .dependencies import RefreshTokenBearer,AccessTokenBearer
+from fastapi.responses import JSONResponse, Response
+from .dependencies import RefreshTokenBearer, AccessTokenBearer
 from datetime import datetime
 from src.error import (
     InvalidToken,
     RefreshTokenRequired,
-    AccessTokenRequired,UserNotFound)
+    AccessTokenRequired,
+    UserNotFound,
+)
 from src.db.redis import add_jti_to_blocklist
-from .utils import (create_access_token,create_url_safe_token,
-                    decode_url_safe_token,generate_password_hash)
+from .utils import (
+    create_access_token,
+    create_url_safe_token,
+    decode_url_safe_token,
+    generate_password_hash,
+)
 from src.celery_tasks import send_email
+from src.mail import mail, create_message
 from src.config import Config
 
 auth_router = APIRouter()
@@ -24,19 +38,29 @@ user_service = UserService()
 
 
 @auth_router.post("/login")
-async def login_user(login_data: UserLoginModel,
-                     session: AsyncSession = Depends(get_session),):
+async def login_user(
+    login_data: UserLoginModel,
+    session: AsyncSession = Depends(get_session),
+):
     response = await user_service.login_users(
         login_data=login_data,
-        session=session,)
+        session=session,
+    )
 
     return response
 
-@auth_router.post("/signup",response_model=UserSignupResponse)
-async def create_user_account(user_data: UserCreateModel,
-                              session: AsyncSession = Depends(get_session)):
-    result= await user_service.create_user_account(user_data=user_data,session=session)
-    # print(result)
+
+@auth_router.post("/signup", response_model=UserSignupResponse)
+async def create_user_account(
+    user_data: UserCreateModel,
+    background_tasks: BackgroundTasks,
+    session: AsyncSession = Depends(get_session),
+):
+    result = await user_service.create_user_account(
+        user_data=user_data,
+        session=session,
+        background_tasks=background_tasks,
+    )
     return result
 
 @auth_router.get("/refresh_token")
@@ -85,25 +109,36 @@ async def verify_user_account(token: str,session:AsyncSession=Depends(get_sessio
 
 
 @auth_router.post("/password-reset-request")
-async def password_Reset_request(email_data: PasswordResetRequestModel):
+async def password_Reset_request(
+    email_data: PasswordResetRequestModel,
+    background_tasks: BackgroundTasks,
+):
     email = email_data.email
 
     token = create_url_safe_token({"email": email})
 
-    link = f"http//{Config.DOMAIN}/auth/password-reset-confirm/{token}"
+    domain = Config.DOMAIN.rstrip("/")
+    if not domain.startswith("http://") and not domain.startswith("https://"):
+        domain = f"https://{domain}"
+
+    link = f"{domain}/auth/password-reset-confirm/{token}"
 
     html = f"""
     <h1>Reset Your Password</h1>
     <p>Please click this <a href="{link}">link</a> to Reset Your Password</p>"""
     subject = "Reset Your Password"
-    
-    send_email.delay([email],subject,html)
+
+    try:
+        message = create_message(recipients=[email], subject=subject, body=html)
+        background_tasks.add_task(mail.send_message, message)
+    except Exception:
+        send_email.delay([email], subject, html)
 
     return JSONResponse(
         content={
-        "message": "Please check your email for instructions to reset your password",
-    },
-    status_code=status.HTTP_200_OK,
+            "message": "Please check your email for instructions to reset your password",
+        },
+        status_code=status.HTTP_200_OK,
     )
 
 @auth_router.post("/password-reset-confirm/{token}")

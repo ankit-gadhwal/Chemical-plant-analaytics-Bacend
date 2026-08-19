@@ -12,9 +12,10 @@ from fastapi.responses import JSONResponse
 from datetime import timedelta,datetime
 from src.error import InvalidCredentials
 from .schemas import UserCreateModel,UserModel,UserLoginModel,UserSignupResponse
-from fastapi import APIRouter,Depends,status
+from fastapi import APIRouter, Depends, status, BackgroundTasks
 from src.db.main import get_session
 from src.config import Config
+from src.mail import mail, create_message
 
 REFRESH_TOKEN_EXPIRY = 2
 
@@ -47,15 +48,24 @@ class UserService:
         raise InvalidCredentials()
 
 
-    async def create_user_account(self,user_data: UserCreateModel,session:AsyncSession):
+    async def create_user_account(
+        self,
+        user_data: UserCreateModel,
+        session: AsyncSession,
+        background_tasks: BackgroundTasks | None = None,
+    ):
         email = user_data.email
-        user_exists = await self.user_exists(email,session)
+        user_exists = await self.user_exists(email, session)
         if user_exists:
             raise UserAlreadyExists()
-        new_user = await self.create_user(user_data,session)
-        token = create_url_safe_token({"email":email})
+        new_user = await self.create_user(user_data, session)
+        token = create_url_safe_token({"email": email})
 
-        link = f"http://{Config.DOMAIN}/auth/verify/{token}"
+        domain = Config.DOMAIN.rstrip("/")
+        if not domain.startswith("http://") and not domain.startswith("https://"):
+            domain = f"https://{domain}"
+
+        link = f"{domain}/auth/verify/{token}"
         html = f"""
         <h1>Verify your Email</h1>
         <p>Please click this <a href="{link}">link</a> to verify your email</p>
@@ -64,13 +74,22 @@ class UserService:
         subject = "Verify Your Email"
 
         try:
-            send_email.delay(emails,subject,html)
+            if background_tasks:
+                message = create_message(recipients=emails, subject=subject, body=html)
+                background_tasks.add_task(mail.send_message, message)
+            else:
+                send_email.delay(emails, subject, html)
         except Exception:
-            pass
+            try:
+                import asyncio
+                message = create_message(recipients=emails, subject=subject, body=html)
+                asyncio.create_task(mail.send_message(message))
+            except Exception:
+                pass
 
         return UserSignupResponse(
-        message= "Account created successfully! A verification email has been sent to your email address. Please verify your email before logging in.",
-        user = new_user,
+            message="Account created successfully! A verification email has been sent to your email address. Please verify your email before logging in.",
+            user=new_user,
         )
 
     
