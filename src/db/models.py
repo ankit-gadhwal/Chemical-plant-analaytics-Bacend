@@ -121,9 +121,16 @@ class UserRole(str,Enum):
 class User(SQLModel,table=True):
     __tablename__ = "user_accounts"
 
-    uid: uuid.UUID = Field(sa_column=Column(pg.UUID,primary_key=True,
-                                nullable=False,default=uuid.uuid4,
-                                info={"description":"Unique identifier for the user account"},))
+    uid: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        sa_column=Column(
+            pg.UUID(as_uuid=True),
+            primary_key=True,
+            nullable=False,
+            default=uuid.uuid4,
+            info={"description": "Unique identifier for the user account"},
+        ),
+    )
     username: str
     first_name: str = Field(nullable = True)
     last_name: str = Field(nullable=True)
@@ -132,8 +139,14 @@ class User(SQLModel,table=True):
     role: UserRole = Field(default=UserRole.USER)
     email: str
     password_hash: str = Field(exclude=True)
-    created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP,default=func.now()))
-    updated_at: datetime = Field(sa_column=Column(pg.TIMESTAMP,default=func.now()))
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(pg.TIMESTAMP, default=datetime.now, nullable=False)
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column=Column(pg.TIMESTAMP, default=datetime.now, onupdate=datetime.now, nullable=False)
+    )
     datasets: list["Dataset"] = Relationship(back_populates="owner")
     chat_sessions: list["ChatSession"] = Relationship(
         sa_relationship_kwargs={

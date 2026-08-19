@@ -1,4 +1,4 @@
-from passlib.context import CryptContext
+import bcrypt
 from datetime import datetime,timedelta,UTC
 import jwt
 import uuid
@@ -6,14 +6,18 @@ from src.config import Config
 import logging
 from itsdangerous import URLSafeTimedSerializer
 
-passwd_context = CryptContext(schemes=['bcrypt'])
-
 def generate_password_hash(password: str) -> str:
-    hash_password = passwd_context.hash(password)
-    return hash_password
+    password_bytes = password.encode('utf-8')[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password_bytes, salt).decode('utf-8')
 
-def verify_password(password: str,hash_password: str) -> bool:
-    return passwd_context.verify(password,hash_password)
+def verify_password(password: str, hash_password: str) -> bool:
+    password_bytes = password.encode('utf-8')[:72]
+    hash_bytes = hash_password.encode('utf-8')
+    try:
+        return bcrypt.checkpw(password_bytes, hash_bytes)
+    except Exception:
+        return False
 
 def create_access_token(user_data: dict,expiry: timedelta=None,refresh: bool=False)->str:
 
