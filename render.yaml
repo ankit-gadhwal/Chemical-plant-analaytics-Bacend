@@ -14,7 +14,7 @@ services:
     dockerContext: .
     plan: starter          # upgrade to standard/pro for production
     region: oregon          # or: frankfurt, singapore, ohio
-    branch: main
+    branch: master
     autoDeploy: true
 
     # Health check endpoint (Render checks this before marking healthy)
@@ -79,7 +79,7 @@ services:
     dockerContext: .
     plan: starter
     region: oregon
-    branch: main
+    branch: master
     autoDeploy: true
 
     startCommand: celery -A src.celery_app.c_app worker --loglevel=info --concurrency=2

@@ -22,15 +22,18 @@ def register_middleware(app:FastAPI):
             "%s %s %s %s %d %.2f ms",client_host,client_port,request.method,request.url.path,response.status_code,elapsed)
         return response
     
+    # CORS Middleware configured to support Vercel deployments, localhost, and custom origins
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
+        allow_origin_regex=r"https://.*\.vercel\.app|http://localhost(:\d+)?|https://.*\.onrender\.com",
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        allow_credentials=True,
+        expose_headers=["*"],
     )
 
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["localhost","127.0.0.1","testserver","*"],
+        allowed_hosts=["*"],
     )
